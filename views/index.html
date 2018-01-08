@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" type="text/javascript"></script>
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+
+    <title>ChatApp| Registration</title>
+</head>
+<div class="jumbotron">
+
+<body>
+    <center style="padding: 20px">
+
+        <h2>REGISTRATION</h2>
+
+    </center>
+
+
+
+<div id="register">
+    <center>
+
+                <div class="col-md-10 form-group" style="padding: 10px">
+                        <div class="col-md-5" id="error">
+
+
+                        </div>
+
+                        <div class="col-md-5" style="margin:10px">
+                            <input type="email" required class="form-control" id="email" placeholder=" Email ID">
+                        </div>
+                        <div class="col-md-5" style="margin:10px">
+                            <input type="text" required class="form-control" id="username" placeholder=" User Name">
+                        </div>
+                        <div class="col-md-5 form-item" style="margin:10px">
+                            <input type="password"class="form-control" id="password" required placeholder=" Password">
+                        </div>
+                        <div class="col-md-5 form-item" style="margin:10px">
+                            <input type="password" class="form-control" id="confirmpassword" required placeholder=" Confirm Password">
+                        </div>
+                        <div style="margin:10px" class="col-md-5 form-item">
+                            <input type="submit" class="form-control btn-success" required value="Register" id="submit">
+                        </div>
+                    </div>
+
+    </center>
+    </div>
+</div>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+    $(function(){
+        var username=$('#username');
+        var email=$('#email');
+        var pass=$('#password');
+        var confirmpass=$('#confirmpassword');
+
+        confirmpass.on('keyup',function(){
+
+            if(pass.val()!=confirmpass.val()){
+
+                $('#error').html('<div class="alert alert-danger" role="alert"> password not match </div>')
+
+            }
+            else{
+                $('#error').html('');
+            }
+
+
+        });
+         var mail=/^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})/;
+        email.on('keyup',function(){
+
+            if(!mail.test(email.val())){
+
+                $('#error').html('<div class="alert alert-danger" role="alert"> Enter Corrent email </div>')
+
+            }
+            else{
+                $('#error').html('');
+
+            }
+
+
+        });
+        $('#submit').on('click',function(){
+
+            if(!mail.test(email.val())){
+
+                $('#error').html('<div class="alert alert-danger" role="alert"> Enter Corrent email </div>')
+                return false;
+            }
+            else{
+                $('#error').html('');
+
+            }
+            if(pass.val()!=confirmpass.val()){
+
+                $('#error').html('<div class="alert alert-danger" role="alert"> password not match </div>')
+                return false;
+            }
+            else{
+                $('#error').html('');
+            }
+
+
+            var socket = io();
+
+            socket.emit('userDetails',{'email':email.val(),'username':$('#username').val(),'password':$('#password').val()});
+            socket.on('userExist',function(){
+                $('#error').html('<div class="alert alert-danger" role="alert"> User Already Exist</div>')
+                return false;
+
+            });
+            socket.on('addsuccess',function(data){
+
+               $('#error').html('<div class="alert alert-success" role="alert">'+data+'</div>')
+                return false;
+            });
+
+        });
+    });
+</script>
+</html>
