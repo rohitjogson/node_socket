@@ -116,17 +116,24 @@
             }
 
 
-            var socket = io();
+            var socket = io('/registration');
 
-            socket.emit('userDetails',{'email':email.val(),'username':$('#username').val(),'password':$('#password').val()});
+            socket.emit('registration',{'email':email.val(),'username':$('#username').val(),'password':$('#password').val()});
             socket.on('userExist',function(){
-                $('#error').html('<div class="alert alert-danger" role="alert"> User Already Exist</div>')
+                email.val('');
+               
+                $('#error').html('<div class="alert alert-danger" role="alert"> Email Already Exist</div>')
                 return false;
 
             });
-            socket.on('addsuccess',function(data){
+            socket.on('registersuccess',function(data){
+                $('#username').val('');
+                email.val('');
+                pass.val('');
+                confirmpass.val('');
+               $('#error').html('<div class="alert alert-success" role="alert">'+data+'</div>');
+                
 
-               $('#error').html('<div class="alert alert-success" role="alert">'+data+'</div>')
                 return false;
             });
 

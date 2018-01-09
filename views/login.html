@@ -14,145 +14,77 @@
 
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
 
-<link rel="stylesheet" href="../static/css/style.css" type="text/css">
+<link rel="stylesheet" href="css/style.css" type="text/css">
 
-<script type="text/javascript" src="../static/js/chatroom.js"></script>
+<script type="text/javascript" src="js/chatroom.js"></script>
 
     <title>ChatApp</title>
 </head>
 <body>
 <div class="jumbotron">
     <div id="loginform">
-    <center >
-    <div class="col-md-3">
-        <h2 class="h2 ">Login to ChatApp</h2>
-    </div>
-    </center>
-
-    <div id="login">
-    <center>
-
+        <center >
+            <div class="col-md-3">
+                <h2 class="h2 ">Login to ChatApp</h2>
+             </div>
+        </center>
+        <div id="login">
+            <center>
                 <div class="col-md-10 form-group" style="padding: 10px">
-                        <div class="col-md-5" id="error">
+                    <div class="col-md-5" id="error">
 
 
-                        </div>
-
-                        <div class="col-md-5" style="margin:10px">
-                            <input type="email" required class="form-control" id="username" placeholder=" Email ID">
-                        </div>
-                        <div class="col-md-5 form-item" style="margin:10px">
-                            <input type="password"class="form-control" id="password" required placeholder=" Password">
-                        </div>
-
-                        <div style="margin:10px" class="col-md-5 form-item">
-                            <input type="submit" class="form-control btn-success" required value="login" id="submit">
-                        </div>
                     </div>
 
-    </center>
+                    <div class="col-md-5" style="margin:10px">
+                        <input type="email" required class="form-control" id="username" placeholder=" Email ID">
+                    </div>
+                    <div class="col-md-5 form-item" style="margin:10px">
+                        <input type="password"class="form-control" id="password" required placeholder=" Password">
+                    </div>
+
+                    <div style="margin:10px" class="col-md-5 form-item">
+                        <input type="submit" class="form-control btn-success"  value="login" id="submit">
+                    </div>
+                </div>
+
+            </center>
+        </div>
     </div>
-
-
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     $(function(){
         var user;
-        $('.chat_window').hide();
+        var id;
+        
         var email=$('#username');
         var pass=$('#password');
-        var socket = io();
+        socket = io('/login');
         $('#submit').on('click',function(){
+            
             console.log('login process');
-            socket.emit('loginDetails',{'username':$('#username').val(),'password':$('#password').val()});
+            socket.emit('loginDetails',{'email':$('#username').val(),'password':$('#password').val()});
             console.log('datail sand');
-
+            
             });
-        socket.on('error',function (msg) {
+        
+        socket.on('loginerror',function (msg) {
             alert('error');
-             $('#error').html('<div class="alert alert-danger" role="alert">+msg+ </div>');
+             $('#error').html('<div class="alert alert-danger" role="alert">'+msg+' </div>');
         });
-        socket.on('usersuccess',function (data) {
+        socket.on('loginsuccess',function (data) {
             console.log('ho gya');
-
-            $("#loginform").hide();
-            $('.chat_window').show();
+            alert(data.userid);
+            id=data.userid;
             user=data.username;
-
-
-
-
+            window.location='/ChatRoom',{'userid':id,'username':user};
 
         });
-        socket.on('broadcastmassage',function(msg){
-
-            var bruser=msg.sender;
-            var mssg=msg.textmessage;
-            $("#unique").animate({ scrollTop:5000});
-            insertChat("you",bruser,mssg);
-
-        });
-        $(document).on("keyup",".mytext", function(e){
-
-
-
-            if (e.which == 13){
-
-
-                var text = $(this).val();
-                $this=$(this);
-                if (text !== ""){
-
-                    $("#unique").animate({ scrollTop:5000});
-                    var date = formatAMPM(new Date());
-                    var day=  formatedate(new Date());
-
-                    insertChat("me",user,text);
-                    socket.emit('newmessage',{'sender':user,'textmessage':text});
-
-                    $this.val('');
-
-                }
-            }
-        });
-
-
     });
 </script>
 
-<div class="chat_window">
-
-<center>
-    <div><h2>CHAT WINDOW</h2></div>
-    <div class="col-md-6" >
-            <div class="form-control">
-            <center><h3 style="text-transform: capitalize;"></h3></center>
-            </div>
-
-            <center>
-                <div class="col-md-12 cframe">
-                    <ul id="unique" >
-
-                    </ul>
-                    <div>
-                        <div class="msj-rta macro" style="margin:auto">
-
-                            <div class="ctext text-r row" style="background:whitesmoke !important">
-                                <input type="text" class="mytext" placeholder="Type a message" style="-webkit-input-placeholder" />
-
-                            </div>
-
-                        </div>
-
-                    </div>
-                </div>
-            </center>
-        </div>
-</div>
-
- </div>
 </body>
 
 </html>

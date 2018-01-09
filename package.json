@@ -9,6 +9,7 @@
   "author": "rohit jogson",
   "license": "BSD-2-Clause",
   "dependencies": {
+    "body-parser": "^1.18.2",
     "consolidate": "^0.15.0",
     "express": "^4.16.2",
     "jquery": "^3.2.1",
