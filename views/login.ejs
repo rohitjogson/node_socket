@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<% include header%>
+<title>ChatRoom| Login</title>
+<body>
+<div class="jumbotron">
+    <div id="loginform">
+        <center >
+            <div class="col-md-3">
+                <h2 class="h2 ">Login to ChatApp</h2>
+             </div>
+        </center>
+        <div id="login">
+            <center>
+                <div class="col-md-10 form-group" style="padding: 10px">
+                    <div class="col-md-5" id="error">
+
+
+                    </div>
+
+                    <div class="col-md-5" style="margin:10px">
+                        <input type="email" required class="form-control" id="username" placeholder=" Email ID">
+                    </div>
+                    <div class="col-md-5 form-item" style="margin:10px">
+                        <input type="password"class="form-control" id="password" required placeholder=" Password">
+                    </div>
+
+                    <div style="margin:10px" class="col-md-5 form-item">
+                        <input type="submit" class="form-control btn-success"  value="login" id="submit">
+                    </div>
+                </div>
+
+            </center>
+        </div>
+    </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    $(function(){
+       
+        
+        var email=$('#username');
+        var pass=$('#password');
+        
+        $('#submit').on('click',function(){
+            
+            $.post('/logincheck',{'useremail':email.val(),'password':pass.val()},function(data){
+                if(data=='not'){
+                    $('#error').html('<div class="alert alert-danger" role="alert"><a href="/"> Register</a> First </div>');
+                }
+                else
+                {
+                    var socket=io('/login');
+                    socket.emit('loginsuccess',data);
+                    console.log('yaha kuch hua hain');
+                    socket.on('redirect',function(link){
+                        window.location.href=link;
+                    });
+                           
+                }
+
+            });
+            
+            });
+        
+    
+    });
+</script>
+
+</body>
+
+</html>

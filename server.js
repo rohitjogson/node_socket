@@ -6,13 +6,13 @@ var app = express();
 
 var http = require('http').Server(app);
 
-var io=require('socket.io')(http);
-
 var crypto= require('crypto');
 
 var mysql = require('mysql');
 
 var bodyParser = require('body-parser');
+
+var io=require('socket.io')(http);
 
 app.use(bodyParser.json()); 
 
@@ -20,17 +20,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(express.static('static'));
 
-var engines = require('consolidate');
-
 app.set('views', __dirname + '/views');
 
-app.engine('html', engines.mustache);
+app.set('view engine', 'ejs');
 
-app.set('view engine', 'html');
 
-app.get('/404', function(req, res, next){
-next();
-});
+var users=[];
 
 
 
@@ -51,27 +46,71 @@ con.connect(function(err) {
   }
 });
 
+/* router */
 
+
+app.get('/404', function(req, res, next){
+    next();
+    });
+
+    
 app.get('/', function(req, res){
 
-    res.render( 'index');
+    res.render( 'index',{'kuch':'REGISTRATION'});
 
 });
-app.get('/login', function(req, res){
-
+app.get('/login',function(req,res){
     res.render('login');
-
-});
-app.post('/ChatRoom', function(req, res){
-    var userid=req.body.userid;
-    var username=req.body.username;
-    console.log(userid);
-    res.render('chatroom',{'userid':userid,'username':username});
-
 });
 
 
-var users={};
+app.post('/logincheck', function(req, res){
+    var mail=req.body.useremail;
+    var password=req.body.password;
+    var id=mail+password;
+    id=crypto.createHash('md5').update(id).digest('hex');
+    var sql='select * from users where id="'+id+'"';
+    con.query(sql,function(err,result){
+        if(err){
+            
+            console.log(err);
+        }
+        else if(result.length==0){
+           
+            res.end('not');
+        }
+        else{
+            
+            res.end(id);
+        }
+    });
+    
+    
+});
+app.get('/ChatRoom/:id', function(req, res){
+    var id=req.params.id;
+    var username=req.params.username;
+    var sql='select * from users where id="'+id+'"';
+    
+    con.query(sql,function(err,result){
+        if(err){
+            console.log('sql error');
+            console.log(err);
+        }
+        else if(result.length==0){
+            
+            res.end('not');
+        }
+        else{
+            
+            res.render('chatroom',{'id':id,'username':result[0].username});
+        }
+    
+
+});
+});
+
+var users=[];
 
 http.listen(3000, function(){
 
@@ -121,83 +160,95 @@ reg.on('connection',function (socket) {
 
     /*  registration end */
 
-    /*  login process start*/
-var login=io.of('/login');
-login.on('connection',function(socket){
-    var loginuserid;
-    var loginusername;
-    socket.on('loginDetails',function(details){
-        var id=details.email+details.password;
-        id=crypto.createHash('md5').update(id).digest('hex');
-        var sql='select * from users where id="'+id+'" and email="'+details.email+'" and password="'+details.password+'"';
-        //console.log(sql);
+var loginio=io.of('/login');
+loginio.on('connection',function(socket){
+    
+    socket.on('loginsuccess',function(data){
         
-        /*  login check */
-        con.query(sql,function(err,result,fields){
-            if(err){
-                socket.emit('loginerror',err);
-            }
-            else if(result.length==0)
-            {
-                socket.emit('loginerror','User Not Exist');
-            }
-            else
-            {
-                
-                //console.log(result[0]);
-                loginuserid=result[0].id;
-                socketuserid=loginuserid;
-                loginusername=result[0].username;
-                socketusername=loginusername;
-                //console.log('user login '+loginusername);
-                socket.emit('loginsuccess',{'userid':loginuserid,'username':loginusername});
-                var onlineusers='select id,username from users where active=1';
-                con.query(onlineusers,function(err,result){
-                    if(result.length>0)
-                    {
-                        socket.emit('onlineusers',result)
-                        //console.log('online: ');
-                        //console.log(result);
-                    }
-                })
-                var active='update users set active=1 where id="'+loginuserid+'"';
-                con.query(active,function(err,result){
-                    if(err)
-                    {
-                        console.log('active user nahi hain'+err);
-                    }
-                });
-               
-            }
-
-        });
-    });
-
-    /*  socket disconnection */
-    socket.on('disconnect',function () {
-        if(loginuserid!=null){
-            console.log(loginusername,' is disconect');
-            var active='update users set active=0 where id="'+loginuserid+'"';
-            con.query(active,function(err,result){
-                if(err)
-                {
-                    console.log('active user nahi hain'+err);
-                }
-            });
+        console.log(users.length);
+        if(!users.includes(data))
+        {
+            var sql='update users set active=1 where id="'+data+'"';
+            con.query(sql);
+            users.push(data);
+            console.log('user puch:',users);
         }
-   });
-
+        
+        socket.emit('redirect','/ChatRoom/'+data);
+       
+    });
+    
 });
-
-/* chating process*/
 var chat=io.of('/chat');
 chat.on('connection',function(socket){
-    var username,idofuser;
+    var room='room1';
+    socket.on('joinRoom',function(data){
+        var roomid=data.myid+data.friendid;
+        var roomid2=data.friendid+data.myid;
+        roomid=crypto.createHash('md5').update(roomid).digest('hex');
+        var sql='select * from room where id="'+roomid+'" OR id="'+roomid2+'"';
+        con.query(sql,function(err,result){
+            if(result.length==0){
+                var sql='insert into room values("'+roomid+'","'+data.myid+'","'+data.friendid+'")';
+                con.query(sql);
+                socket.leave(room);
+                socket.join('/'+roomid);
+                room='/'+roomid;
+            }
+            else{
+                socket.leave(room);
+                socket.join('/'+result[0].id);
+                room='/'+result[0].id;
+                
+
+            }
+        });
+    });
+    
+    socket.to(room).emit('naya','new user join');
+    socket.on('newmessage',function(msg){
+        console.log(msg.textmessage);
+        socket.to(room).emit('getmessage',msg);
+    });
+    socket.on('logout',function(id){
+        users.pop(id);
+        if(!users.includes(id)){
+            var sql='update users set active=0 where id="'+id+'"';
+            con.query(sql);
+            console.log('user logout');
+            socket.broadcast.emit('newuserremovesuccess',id);
+            socket.emit('logoutsucc','/login');
+        }
+        else{console.log(users);}
+    });
+    
     socket.on('userconnect',function(user){
-        username=user.name;
-        idofuser=user.id;
+        idofuser=user;
+        
+        
+        if(!users.includes(idofuser)){
+            socket.emit('usernahihain');
+            
+            
+        }
+        else{
+            con.query('select id,username from users where id="'+user+'"',function(err,result){
+                socket.emit('usernamefetch',result[0].username);
+                socket.broadcast.emit('newuseraddsuccess',result);
+            })
+
+            var sql='select id,username from users where active=1 AND id!="'+user+'"';
+            con.query(sql,function(err,result){
+            
+            socket.emit('fetchonlineusers',result);
+            });
+            
+        }
+       
+
     });
 
+    
 
 
 

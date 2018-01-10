@@ -1,0 +1,69 @@
+ /*  login process 
+var login=io.of('/login');
+login.on('connection',function(socket){
+    var loginuserid;
+    var loginusername;
+    socket.on('loginDetails',function(details){
+        var id=details.email+details.password;
+        id=crypto.createHash('md5').update(id).digest('hex');
+        var sql='select * from users where id="'+id+'" and email="'+details.email+'" and password="'+details.password+'"';
+        //console.log(sql);
+        
+      
+        con.query(sql,function(err,result,fields){
+            if(err){
+                socket.emit('loginerror',err);
+            }
+            else if(result.length==0)
+            {
+                socket.emit('loginerror','User Not Exist');
+            }
+            else
+            {
+                
+                //console.log(result[0]);
+                loginuserid=result[0].id;
+                socketuserid=loginuserid;
+                loginusername=result[0].username;
+                socketusername=loginusername;
+                //console.log('user login '+loginusername);
+                socket.emit('loginsuccess',{'userid':loginuserid,'username':loginusername});
+                var onlineusers='select id,username from users where active=1';
+                con.query(onlineusers,function(err,result){
+                    if(result.length>0)
+                    {
+                        socket.emit('onlineusers',result)
+                        //console.log('online: ');
+                        //console.log(result);
+                    }
+                })
+                var active='update users set active=1 where id="'+loginuserid+'"';
+                con.query(active,function(err,result){
+                    if(err)
+                    {
+                        console.log('active user nahi hain'+err);
+                    }
+                });
+               
+            }
+
+        });
+    });
+
+   
+    socket.on('disconnect',function () {
+        if(loginuserid!=null){
+            console.log(loginusername,' is disconect');
+            var active='update users set active=0 where id="'+loginuserid+'"';
+            con.query(active,function(err,result){
+                if(err)
+                {
+                    console.log('active user nahi hain'+err);
+                }
+            });
+        }
+   });
+
+});
+start*/
+/* chating process*/
