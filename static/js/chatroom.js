@@ -21,39 +21,74 @@ function formatedate(date){
 
 }
 
+function insertChat2(who,username,text,day,date,time = 0){
+    var control = "";
+    
 
+
+    if (who == "you"){
+
+        control = '<li style="width:60%;float:left">' +
+                        '<div class="msj macro">' +
+
+                            '<div class="ctext ctext-r">' +
+                                '<p>'+ text +'</p>' +
+                                '<p><small>'+date+'  '+day+'</small></p>'+
+
+
+                            '</div>' +
+                            
+                    '</div></li>';
+    }
+
+    else{
+        control = '<li style="width:60%;float:right" class="badge">' +
+                        '<div class="msj-rta macro">' +
+                            '<div class="ctext ctext-l" style="padding:5px">' +
+                                '<p>'+text +
+                                '<small>'+date+'  '+day+'</small></p>' +
+                            '</div>' +
+                        
+            '</div></li>';
+    }
+    setTimeout(
+        function(){
+            $("#unique").append(control);
+
+
+
+        }, time);
+
+}
 function insertChat(who,username,text, time = 0){
     var control = "";
     var date = formatAMPM(new Date());
     var day=  formatedate(new Date());
 
 
-    if (who == "me"){
+    if (who == "you"){
 
-        control = '<li style="width:60%;float:right">' +
+        control = '<li style="width:60%;float:left">' +
                         '<div class="msj macro">' +
 
-                            '<div class="ctext ctext-l">' +
+                            '<div class="ctext ctext-r">' +
                                 '<p>'+ text +'</p>' +
                                 '<p><small>'+date+'  '+day+'</small></p>'+
 
 
                             '</div>' +
-                            '<div class="avatar"><img class="img-circle" style="width:60%;" src="image" /></div>' +
-
-                    '<div id="username">'+username+'</div>'+
+                            
                     '</div></li>';
     }
 
     else{
-        control = '<li style="width:60%;float:left">' +
+        control = '<li style="width:60%;float:right">' +
                         '<div class="msj-rta macro">' +
-                            '<div class="ctext ctext-r">' +
+                            '<div class="ctext ctext-l">' +
                                 '<p>'+text+'</p>' +
                                 '<p><small>'+date+'  '+day+'</small></p>' +
                             '</div>' +
-                        '<div class="avatar" style="padding:0px 0px 0px 10px !important"><img class="img-circle" style="width:60%;" src="image" /></div>' +
-                    '<div id="username">'+username+'</div>'+
+                       
             '</div></li>';
     }
     setTimeout(

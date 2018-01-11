@@ -21,6 +21,11 @@
 
     <title>ChatApp</title>
 </head>
+<style>
+::-webkit-scrollbar {
+    display: none;
+    }
+    </style>
 <header class="container" style="padding: 20px">
    
     <div class="row" style="float:right">
@@ -44,7 +49,7 @@
             <div><h2>CHAT WINDOW</h2></div>
             <div class="col-md-12" >
                 <div class="form-control">
-                <center><h3 style="text-transform: capitalize;"></h3></center>
+                <center><h3 style="text-transform: capitalize;" id="receivername"></h3></center>
                 </div>
 
                 <center>
@@ -57,6 +62,7 @@
 
                                 <div class="ctext text-r row" style="background:whitesmoke !important">
                                     <input type="text" class="mytext" placeholder="Type a message" />
+                                    <input type="hidden" class="hidden" id="4fba0847be33303e9014e979b7573822">
 
                                 </div>
 
@@ -115,13 +121,12 @@ socket.on('newuserremovesuccess',function(id){
     $('#onlineusers').find('#'+id).remove();
 });
 socket.on('newuseraddsuccess',function(user){
-    $('#onlineusers').find('#'+user).each(function(){
-        $(this).remove();
-    });
     
-    $('#onlineusers').append('<li class="list-group-item on " id="'+data[0].id+'"><div >'+
+    $('#onlineusers').find('#'+user[0].id).remove();
+    
+    $('#onlineusers').append('<li class="list-group-item on " id="'+user[0].id+'"><div >'+
             '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
-                    data[0].username+
+                    user[0].username+
             '</a>'+
         '</div>'+
         '</li>');
@@ -135,6 +140,7 @@ socket.on('fetchonlineusers',function(data){
     $('#onlineusers').append('<li class="list-group-item on " id="'+data[i].id+'"><div >'+
                     '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
                             data[i].username+
+                            '<div style="float:right"><span class="badge badge-danger">4</span></div>'+
                     '</a>'+
                 '</div>'+
                 '</li>');
@@ -145,14 +151,38 @@ socket.on('fetchonlineusers',function(data){
 
 $(document).on('click','.on',function(){
     $this= $(this);
-    alert(this.id);
-    $this.toggleClass('active');
+    
+    var rm=$this.parent('ul').children('.active');
+    rm.removeClass('active');
+    rm.find('a').css({'color':'blue'});
+    
+    $('.hidden').attr('id',this.id);
+    $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
     $('#unique').html('');
+    
     socket.emit('joinRoom',{'myid':userid,'friendid':this.id});
+    socket.emit('massagerequired',{'myid':userid,'friendid':this.id});
 });
 
+socket.on('allmessage',function(data){
+    var frid=$('.hidden').attr('id');
 
+    for(i=0;i<data.message.length;i++)
+    {
+        if(data.message[i].sender==userid)
+        {
+            
+            insertChat2('me',user,data.message[i].massge,data.message[i].time,data.message[i].date);
+        }
+        else
+        {
+            insertChat2('you',data.receiver,data.message[i].massge,data.message[i].time,data.message[i].date);
+        }
+    }
+    $("#receivername").html(data.receiver);
+    $("#unique").animate({ scrollTop:5000});
+});
 socket.on('naya',function(msg){
 
 
@@ -160,11 +190,11 @@ $("#unique").animate({ scrollTop:5000});
 insertChat("you",'SERVER',msg);
 
 });
-socket.on('getmessage',function(msg){
+socket.on('roommessage',function(msg){
 
 var bruser=msg.sender;
 var mssg=msg.textmessage;
-console.log('new massage');
+
 $("#unique").animate({ scrollTop:5000});
 insertChat("you",bruser,mssg);
 
@@ -187,9 +217,9 @@ if (e.which == 13){
         $("#unique").animate({ scrollTop:5000});
         var date = formatAMPM(new Date());
         var day=  formatedate(new Date());
-
+        friendid=$('.hidden').attr('id');
         insertChat("me",user,text);
-        socket.emit('newmessage',{'sender':user,'textmessage':text});
+        socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
 
         $this.val('');
 
