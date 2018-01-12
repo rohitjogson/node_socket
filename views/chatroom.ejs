@@ -25,6 +25,7 @@
 ::-webkit-scrollbar {
     display: none;
     }
+
     </style>
 <header class="container" style="padding: 20px">
    
@@ -38,18 +39,75 @@
 </header>
 <div class="row col-md-12">
     <!-- chated users -->
-    <div class="col-md-3">
-        <h2>users</h2>
-        
+    <div class="col-md-3" style="background-color: azure">
+       <div style="margin-bottom:10px" class="container">
+            <button type="button" class="btn btn-primary" disabled >
+                My Groups
+            </button>
+            
+            <button type="button" id="creategroup" class="btn" data-toggle="modal" data-target="#exampleModalLong">
+                New Groups 
+            </button>
+        </div>
+  <!-- Modal -->
+<style>
+  .state-icon {
+    left: -5px;
+}
+.list-group-item-primary {
+    color: rgb(255, 255, 255);
+    background-color: rgb(66, 139, 202);
+}
+
+/* DEMO ONLY - REMOVES UNWANTED MARGIN */
+.well .list-group {
+    margin-bottom: 0px;
+}
+
+</style>
+  <div  class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+    <div  class="modal-dialog" role="document">
+      <div class="modal-content" style="background-color: bisque">
+        <div class="modal-header">
+          <div  id="exampleModalLongTitle" class="container"><input type="text" class="form-control" id="groupname" placeholder="Group Name "></div>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <div class="col-md-12">
+                
+                <div class="well" style="max-height: 300px;overflow: auto;">
+                    <ul class="list-group checked-list-box" id="groups" >
+                      
+                      
+                    </ul>
+                </div>
+            </div>
+            
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="creategroups">Create</button>
+        </div>
+      </div>
     </div>
+  </div>
+  <div class="container">
+    <ul class="list-group" id="chatuser" >
+                
+                    
+    </ul>
+  </div>
+</div>
     <!-- caht window-->
-    <div class="col-md-6 chat_window" >
+    <div class="col-md-6 chat_window" style="background-color:aliceblue">
             
         <center>
-            <div><h2>CHAT WINDOW</h2></div>
+            
             <div class="col-md-12" >
-                <div class="form-control">
-                <center><h3 style="text-transform: capitalize;" id="receivername"></h3></center>
+                <div >
+                <center><button class="btn btn-info col-md-12" style="text-transform: capitalize;" id="receivername">Public ChatRoom</button></center>
                 </div>
 
                 <center>
@@ -61,7 +119,7 @@
                             <div class="msj-rta macro" style="margin:auto">
 
                                 <div class="ctext text-r row" style="background:whitesmoke !important">
-                                    <input type="text" class="mytext" placeholder="Type a message" />
+                                    <input type="text" class="mytext" placeholder="Type a message" autofocus />
                                     <input type="hidden" class="hidden" id="4fba0847be33303e9014e979b7573822">
 
                                 </div>
@@ -76,8 +134,10 @@
         </center>
     </div>
     <!-- online users -->
-    <div class="col-md-3">
-            <h2>online users</h2>
+    <div class="col-md-3" style="background-color: azure;">
+        <button type="button" class="form-control btn btn-primary" disabled style="margin-bottom:10px">
+            Online Users
+        </button>
             <ul class="list-group" id="onlineusers">
                 
                     
@@ -105,7 +165,18 @@ socket.on('logoutsucc',function(data){
     window.location.href=data;
 });
 
+socket.emit('mychat',userid);
 
+socket.on('getchat',function(grd){
+
+    $('#chatuser').append('<li class="list-group-item " id="'+grd.id+'"><div >'+
+            '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
+                    grd.name+
+            '</a>'+
+        '</div>'+
+        '</li>');
+
+});
 
 /* check for login*/
 socket.on('usernahihain',function(){
@@ -113,7 +184,32 @@ socket.on('usernahihain',function(){
 });
 
 /* broadcast */
+$(document).on('click','#chatuser li',function(){
 
+     $this= $(this);
+    
+    var rm=$this.parent('ul').children('.active');
+    rm.removeClass('active');
+    rm.find('a').css({'color':'blue'});
+    
+    $('.hidden').attr('id',this.id);
+    $this.addClass('active');
+    $this.find('a').css({'color':'#FFF'});
+    $('#unique').html('');
+    
+    socket.emit('joingroupRoom',this.id);
+    socket.emit('groupmassagerequired',this.id);
+});
+socket.on('groupcreated',function(grd){
+    $("[data-dismiss=modal]").trigger({ type: "click" });
+    $('#chatuser').append('<li class="list-group-item " id="'+grd.id+'"><div >'+
+            '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
+                    grd.name+
+            '</a>'+
+        '</div>'+
+        '</li>');
+
+});
 
 
 socket.on('newuserremovesuccess',function(id){
@@ -122,6 +218,10 @@ socket.on('newuserremovesuccess',function(id){
 });
 socket.on('newuseraddsuccess',function(user){
     
+    if(user[0].id==userid){
+        alert('someone login to your account from another device');
+        return false;
+    }
     $('#onlineusers').find('#'+user[0].id).remove();
     
     $('#onlineusers').append('<li class="list-group-item on " id="'+user[0].id+'"><div >'+
@@ -148,6 +248,27 @@ socket.on('fetchonlineusers',function(data){
                 
     
 });
+
+socket.on('userlist',function(data){
+for(i=0;i<data.length;i++){
+    $('#groups').append('<li class="list-group-item" id="'+data[i].id+'" style="text-transform:capitalize">'+data[i].username+'</li>');
+}
+});
+
+$("#creategroups").click(function(){
+    var favorite = [];
+    $.each($("input[type='checkbox']:checked"), function(){            
+        favorite.push($(this).parent('li').attr('id'));
+    });
+    socket.emit('newgroupcreate',{'admin':userid,'name':$('#groupname').val(),'members':favorite,'myid':userid});
+});
+
+socket.on('alreadyhavegroup',function(){
+    alert('you already craete group with this name ');
+    $('#groupname').val('');
+});
+
+
 
 $(document).on('click','.on',function(){
     $this= $(this);
@@ -217,7 +338,8 @@ if (e.which == 13){
         $("#unique").animate({ scrollTop:5000});
         var date = formatAMPM(new Date());
         var day=  formatedate(new Date());
-        friendid=$('.hidden').attr('id');
+        friendid=$('input[type="hidden"]').attr('id');
+        console.log(friendid);
         insertChat("me",user,text);
         socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
 

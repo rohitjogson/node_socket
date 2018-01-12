@@ -181,11 +181,69 @@ loginio.on('connection',function(socket){
 });
 var chat=io.of('/chat');
 chat.on('connection',function(socket){
-    console.log(socket.id);
     
+    socket.join('94dbe2575d073999956c38753d8bcbef');
+    con.query('select id,username from users where id !="4fba0847be33303e9014e979b7573822"',function(err,result){
+        socket.emit('userlist',result);
+    });
+
+    socket.on('mychat',function(id){
+        
+        con.query('select groupid from participents where userid="'+id+'"' , function(err,result){
+            
+            
+            for(i=0;i<result.length;i++)
+            {
+            
+                sql='select id,name from groups where id="'+result[i].groupid+'"';
+                con.query(sql,function(err,res){
+                
+                socket.emit('groupcreated',{'id':res[0].id,'name':res[0].name});
+                
+                
+            });
+            }
+        
+                
+        });
+        
+    });
+    socket.on('joingroupRoom',function(group){
+        socket.leaveAll();
+        socket.join(group);
+    });
+    socket.on('newgroupcreate',function(group){
+
+        var grid=group.admin+group.name;
+        grid=crypto.createHash('md5').update(grid).digest('hex');
+        con.query('select id from groups where id="'+grid+'"',function(err,result){
+            
+            if(result.length==1){
+                socket.emit('alreadyhavegroup');
+            }
+            else{
+                var sql='insert into groups values("'+grid+'","'+group.admin+'","'+group.name+'")';
+                con.query(sql,function(err,res){
+                    if(!err){console.log('group created: '+group.name);}else{console.log(err);}
+                    con.query('insert into participents values("'+grid+'","'+group.myid+'")');
+
+                    for(i=0;i<group.members.length;i++){
+                        con.query('insert into participents values("'+grid+'","'+group.members[i]+'")');
+                        socket.to(usersocket[group.members[i]]).emit('groupcreated',{'id':grid,'name':group.name});
+                    }
+                    
+                    
+                    socket.emit('groupcreated',{'id':grid,'name':group.name});
+                });
+            }
+
+        });
+        
+    });
     var getroom=function (myid,friendid,callback)
     {
-        if(friendid=='4fba0847be33303e9014e979b7573822'){return '94dbe2575d073999956c38753d8bcbef'}
+        console.log('room called');
+        if(friendid=='4fba0847be33303e9014e979b7573822'){return callback('94dbe2575d073999956c38753d8bcbef');}
         
         var roomid=myid+friendid;
         var roomid2=friendid+myid;
@@ -229,6 +287,16 @@ chat.on('connection',function(socket){
 
             }
         });
+    });
+    socket.on('groupmassagerequired',function(id){
+        
+        
+        con.query('select * from chat where id="'+id+'" ',function(err,result){
+            
+            con.query('select name from groups where id="'+id+'"',function(err,res1){
+                socket.emit('allmessage',{'receiver':res1[0].name,'message':result});
+                });
+            });
     });
     
     socket.on('massagerequired',function(msid){
