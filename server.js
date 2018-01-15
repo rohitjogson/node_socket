@@ -185,32 +185,88 @@ chat.on('connection',function(socket){
     socket.join('94dbe2575d073999956c38753d8bcbef');
     con.query('select id,username from users where id !="4fba0847be33303e9014e979b7573822"',function(err,result){
         socket.emit('userlist',result);
+        sql='select * from chat where id="94dbe2575d073999956c38753d8bcbef"';
+        con.query(sql,function(err,result){
+            con.query('select name from groups where id="94dbe2575d073999956c38753d8bcbef"',function(err,res1){
+                socket.emit('allmessage',{'receiver':res1[0].name,'message':result});
+                
+                });
+        });
     });
 
-    socket.on('mychat',function(id){
+    socket.on('userconnect',function(user){
+        idofuser=user;
         
-        con.query('select groupid from participents where userid="'+id+'"' , function(err,result){
+        
+        if(!users.includes(idofuser)){
+            socket.emit('usernahihain');
+            
+            console.log(users);
             
             
-            for(i=0;i<result.length;i++)
-            {
-            
-                sql='select id,name from groups where id="'+result[i].groupid+'"';
-                con.query(sql,function(err,res){
-                
-                socket.emit('groupcreated',{'id':res[0].id,'name':res[0].name});
-                
-                
+        }
+        else{
+            con.query('select id,username from users where id="'+user+'"',function(err,result){
+                socket.emit('usernamefetch',result[0].username);
+                socket.broadcast.emit('newuseraddsuccess',result);
+            })
+            usersocket[user]=socket.id;
+            con.query('select groupid from participents where userid="'+user+'"' , function(err,result){
+                for(i=0;i<result.length;i++)
+                {
+                    
+                    sql='select id,name from groups where id="'+result[i].groupid+'"';
+                    con.query(sql,function(err,res){
+                        socket.emit('groupcreated',{'id':res[0].id,'name':res[0].name});
+                    });
+                }
             });
-            }
-        
-                
+            console.log(usersocket);
+            var sql='select id,username from users where active=1 AND id!="'+user+'"';
+            con.query(sql,function(err,result){
+            
+            socket.emit('fetchonlineusers',result);
+            });
+            
+        }
+       
+
+    });
+    
+    socket.on('mynotification',function(ids){
+        getroom(ids.me,ids.friend,function(roomdata){
+            console.log('ide.me:'+ids.me);
+            console.log('room:'+roomdata);
+            sqlquery='select count(*) as num from chat where id="'+roomdata+'" AND receiver="'+ids.me+'" AND  datetime>(select time from userclick where roomid="'+roomdata+'" AND userid="'+ids.me+'")';
+            console.log(sqlquery);
+            con.query(sqlquery,function(err,row){
+                if(err){console.log(err);}
+                console.log(row[0].num);
+                socket.emit('yournotification',{'id':ids.friend,'notification':row[0].num});
+            });
         });
-        
     });
     socket.on('joingroupRoom',function(group){
         socket.leaveAll();
-        socket.join(group);
+        
+        newsql='select * from userclick where userid="'+group.myid+'" AND roomid="'+group.group+'"';
+        con.query(newsql,function(err,ress){
+            console.log('userclick');
+            if(ress.length==0){
+                con.query('insert into userclick(roomid,userid) values("'+group.group+'","'+group.myid+'")');
+            }
+            else{
+                con.query('update userclick set time=CURRENT_TIMESTAMP where roomid="'+group.group+'" AND userid="'+group.myid+'"');
+            }
+        });
+        socket.join(group.group);
+        con.query('select * from chat where id="'+group.group+'" ',function(err,result){
+            console.log(result);
+            con.query('select name from groups where id="'+group.group+'"',function(err,res1){
+                socket.emit('allmessage',{'receiver':res1[0].name,'message':result});
+                console.log(res1[0].name);
+                });
+            });
     });
     socket.on('newgroupcreate',function(group){
 
@@ -224,12 +280,15 @@ chat.on('connection',function(socket){
             else{
                 var sql='insert into groups values("'+grid+'","'+group.admin+'","'+group.name+'")';
                 con.query(sql,function(err,res){
+                    con.query('insert into room values("'+grid+'","'+group.admin+'","'+group.admin+'")',function(err,result){
+                        console.log(result);
+                    });
                     if(!err){console.log('group created: '+group.name);}else{console.log(err);}
                     con.query('insert into participents values("'+grid+'","'+group.myid+'")');
-
+                    
                     for(i=0;i<group.members.length;i++){
                         con.query('insert into participents values("'+grid+'","'+group.members[i]+'")');
-                        socket.to(usersocket[group.members[i]]).emit('groupcreated',{'id':grid,'name':group.name});
+                        socket.to(usersocket[group.members[i]]).emit('groupcreatedbyfriend',{'id':grid,'name':group.name});
                     }
                     
                     
@@ -242,28 +301,35 @@ chat.on('connection',function(socket){
     });
     var getroom=function (myid,friendid,callback)
     {
-        console.log('room called');
+        
         if(friendid=='4fba0847be33303e9014e979b7573822'){return callback('94dbe2575d073999956c38753d8bcbef');}
         
         var roomid=myid+friendid;
         var roomid2=friendid+myid;
+        var room3=friendid;
         roomid=crypto.createHash('md5').update(roomid).digest('hex');
         roomid2=crypto.createHash('md5').update(roomid2).digest('hex');
         
-        var sql='select * from room where id="'+roomid+'" OR id="'+roomid2+'"';
+        var sql='select * from room where id="'+roomid+'" OR id="'+roomid2+'" OR id="'+room3+'"';
         
         
         return con.query(sql,function(err,result){
+            if(err){console.log('sql error:'+err);}
+            else{
+            if(result.length!=0){
+                
                 callback(result[0].id);
+            }
+            else{
+                console.log('room not find');
+            }
+        }
         });
     
     }
     
-
-   
     socket.on('joinRoom',function(data){
-        console.log('my id is '+data.myid);
-        console.log('friend id is '+data.friendid);
+        
         var roomid=data.myid+data.friendid;
         var roomid2=data.friendid+data.myid;
         roomid=crypto.createHash('md5').update(roomid).digest('hex');
@@ -274,12 +340,39 @@ chat.on('connection',function(socket){
                 var sql='insert into room values("'+roomid+'","'+data.myid+'","'+data.friendid+'")';
                 con.query(sql);
                 console.log('room join : '+roomid);
+                newsql='select * from userclick where userid="'+data.myid+'" AND roomid="'+roomid+'"';
+                con.query(newsql,function(err,ress){
+                    console.log('userclick');
+
+                    if(ress.length==0){
+                        con.query('insert into userclick(roomid,userid) values("'+roomid+'","'+data.myid+'")');
+                        con.query('select * from userclick where userid="'+data.myid+'" AND roomid="'+roomid+'"',function(err,roww){
+                            if(roww.length==0)
+                            {
+                                con.query('insert into userclick(roomid,userid) values("'+roomid+'","'+data.friendid+'")');
+                            }
+                        });
+                    }
+                    else{
+                        con.query('update userclick set time=CURRENT_TIMESTAMP where roomid="'+roomid+'" AND userid="'+data.myid+'")');
+                    }
+                });
                 socket.leaveAll();
                 socket.join(roomid);
                 
             }
             else{
                 console.log('room joined:' +result[0].id);
+                newsql='select * from userclick where userid="'+data.myid+'" AND roomid="'+result[0].id+'"';
+                con.query(newsql,function(err,ress){
+                    console.log('userclick');
+                    if(ress.length==0){
+                        con.query('insert into userclick(roomid,userid) values("'+result[0].id+'","'+data.myid+'")');
+                    }
+                    else{
+                        con.query('update userclick set time=CURRENT_TIMESTAMP where roomid="'+result[0].id+'" AND userid="'+data.myid+'"');
+                    }
+                });
                 socket.leaveAll();
                 socket.join(result[0].id);
                 
@@ -288,17 +381,6 @@ chat.on('connection',function(socket){
             }
         });
     });
-    socket.on('groupmassagerequired',function(id){
-        
-        
-        con.query('select * from chat where id="'+id+'" ',function(err,result){
-            
-            con.query('select name from groups where id="'+id+'"',function(err,res1){
-                socket.emit('allmessage',{'receiver':res1[0].name,'message':result});
-                });
-            });
-    });
-    
     socket.on('massagerequired',function(msid){
         var id=msid.myid+msid.friendid;
         var id2=msid.friendid+msid.myid;
@@ -311,16 +393,43 @@ chat.on('connection',function(socket){
                 });
             });
     });
+    socket.on('typing',function(ur){
+        console.log(ur);
+        getroom(ur.sender,ur.receiver,function(room){
+            console.log(room);
+            con.query('select username from users where id="'+ur.sender+'"',function(err,result){
+                console.log(result[0].username+' is typing');
+                socket.to(room).emit('usertyping',{'room':room,'id':ur.sender,'name':result[0].username});
+            });
+            
+        });
+    });
     socket.on('newmessage',function(msg){
         console.log('sender: '+msg.sender+', receiver: '+msg.receiver+', message: '+msg.textmessage);
+        console.log('upprif'+usersocket[msg.receiver]);
         getroom(msg.sender,msg.receiver,function(result){
             console.log('room: '+result);
-            con.query('select username from users where id="'+msg.sender+'"',function(err,res1){
-                socket.to(result).emit('roommessage',{'sender':res1[0].username,'textmessage':msg.textmessage});
-                con.query('insert into chat values("'+result+'","'+msg.sender+'","'+msg.receiver+'","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(err,res){
-               // console.log('inserted at  :'+result);
+
+            con.query('update userclick set time=CURRENT_TIMESTAMP where roomid="'+result+'" AND userid="'+msg.sender+'"');
+            if(result==msg.receiver){
+                con.query('select username from users where id="'+msg.sender+'"',function(err,res1){
+                    console.log('if'+usersocket[msg.receiver]);
+                    //socket.broadcast()
+                    socket.to(result).emit('roommessage',{'id':msg.sender,'sender':res1[0].username,'textmessage':msg.textmessage});
+                    con.query('insert into chat(id,sender,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+msg.sender+'","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(err,res){
+               
+                    });
                 });
-            });
+            }
+            else{
+                con.query('select username from users where id="'+msg.sender+'"',function(err,res1){
+                    socket.broadcast.to(usersocket[msg.receiver]).emit('yournotification',{'id':msg.receiver,'notification':1});
+                    socket.to(result).emit('roommessage',{'sender':res1[0].username,'textmessage':msg.textmessage});
+                    con.query('insert into chat(id,sender,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+msg.receiver+'","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(err,res){
+               // console.log('inserted at  :'+result);
+                    });
+                });
+            }
         });
         
 
@@ -339,37 +448,12 @@ chat.on('connection',function(socket){
         else{console.log(users);}
     });
     
-    socket.on('userconnect',function(user){
-        idofuser=user;
-        
-        
-        if(!users.includes(idofuser)){
-            socket.emit('usernahihain');
-            
-            console.log(users);
-            
-            
-        }
-        else{
-            con.query('select id,username from users where id="'+user+'"',function(err,result){
-                socket.emit('usernamefetch',result[0].username);
-                socket.broadcast.emit('newuseraddsuccess',result);
-            })
-            usersocket[user]=socket.id;
-            console.log(usersocket);
-            var sql='select id,username from users where active=1 AND id!="'+user+'"';
-            con.query(sql,function(err,result){
-            
-            socket.emit('fetchonlineusers',result);
-            });
-            
-        }
-       
-
-    });
+  
 
     
 
+   
+    
 
 
 });

@@ -27,14 +27,19 @@
     }
 
     </style>
-<header class="container" style="padding: 20px">
-   
-    <div class="row" style="float:right">
-            <div><img class="img-circle" src="image"></div>
-            <div class="profile">
-                <span id="username"></span>
-            </div>
-        <a class="form-control" href="#" id="logout">Logout</a>
+<header class="nav navbar container" style="padding: 20px">
+   <div ></div>
+    <div  style="float:right;padding: 5px;">
+        
+        <div >
+            <img class="img-circle" src="image">
+        </div>
+        <div class="profile">
+            <span id="username"></span>
+        </div>
+        <div>
+            <a class="form-control" href="#" id="logout">Logout</a>
+        </div>
     </div>
 </header>
 <div class="row col-md-12">
@@ -165,19 +170,6 @@ socket.on('logoutsucc',function(data){
     window.location.href=data;
 });
 
-socket.emit('mychat',userid);
-
-socket.on('getchat',function(grd){
-
-    $('#chatuser').append('<li class="list-group-item " id="'+grd.id+'"><div >'+
-            '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
-                    grd.name+
-            '</a>'+
-        '</div>'+
-        '</li>');
-
-});
-
 /* check for login*/
 socket.on('usernahihain',function(){
     window.location.href='/login';
@@ -189,16 +181,19 @@ $(document).on('click','#chatuser li',function(){
      $this= $(this);
     
     var rm=$this.parent('ul').children('.active');
+    var rm1=$('.on').parent('ul').children('.active');
     rm.removeClass('active');
     rm.find('a').css({'color':'blue'});
+    rm1.removeClass('active');
+    rm1.find('a').css({'color':'blue'});
     
     $('.hidden').attr('id',this.id);
     $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
     $('#unique').html('');
     
-    socket.emit('joingroupRoom',this.id);
-    socket.emit('groupmassagerequired',this.id);
+    socket.emit('joingroupRoom',{'group':this.id,'myid':userid});
+    
 });
 socket.on('groupcreated',function(grd){
     $("[data-dismiss=modal]").trigger({ type: "click" });
@@ -210,7 +205,16 @@ socket.on('groupcreated',function(grd){
         '</li>');
 
 });
+socket.on('groupcreatedbyfriend',function(grd){
+    alert('you are added in '+grd.name);
+    $('#chatuser').append('<li class="list-group-item " id="'+grd.id+'"><div >'+
+            '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
+                    grd.name+
+            '</a>'+
+        '</div>'+
+        '</li>');
 
+});
 
 socket.on('newuserremovesuccess',function(id){
     
@@ -227,6 +231,7 @@ socket.on('newuseraddsuccess',function(user){
     $('#onlineusers').append('<li class="list-group-item on " id="'+user[0].id+'"><div >'+
             '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
                     user[0].username+
+                    '<div style="float:right"><span class="badge badge-danger" ></span></div>'+
             '</a>'+
         '</div>'+
         '</li>');
@@ -236,23 +241,44 @@ socket.on('fetchonlineusers',function(data){
     
     
     for(i=0;i<data.length;i++){
-       
-    $('#onlineusers').append('<li class="list-group-item on " id="'+data[i].id+'"><div >'+
-                    '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
+        socket.emit('mynotification',{'me':userid,'friend':data[i].id});
+        $('#onlineusers').append('<li class="list-group-item on " id="'+data[i].id+'">'+
+                    '<div >'+
+                        '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
                             data[i].username+
-                            '<div style="float:right"><span class="badge badge-danger">4</span></div>'+
-                    '</a>'+
-                '</div>'+
-                '</li>');
-                    }
-                
+                            '<div style="float:right"><span class="badge badge-danger" ></span></div>'+
+                        '</a>'+
+                    '</div>'+
+                    '</li>');
+                        }
+                    
     
+});
+socket.on('yournotification',function(dt){
+    var usr=$('#onlineusers').children('li#'+dt.id);
+    if(dt.notification>1){
+        
+        
+        usr.find('div div .badge-danger').html(dt.notification);
+        console.log(usr.find('div div .badge-danger').html());
+        
+    }
+    else{
+        if(usr.find('div div .badge-danger').html()==''){
+            usr.find('div div .badge-danger').html(dt.notification);
+        }
+        else{
+            usr.find('div div .badge-danger').html(usr.find('div div .badge-danger').html()+dt.notification)
+        }
+    }
 });
 
 socket.on('userlist',function(data){
-for(i=0;i<data.length;i++){
-    $('#groups').append('<li class="list-group-item" id="'+data[i].id+'" style="text-transform:capitalize">'+data[i].username+'</li>');
-}
+    for(i=0;i<data.length;i++){
+        if(data[i].id!=userid){
+        $('#groups').append('<li class="list-group-item" id="'+data[i].id+'" style="text-transform:capitalize">'+data[i].username+'</li>');
+        }
+    }
 });
 
 $("#creategroups").click(function(){
@@ -276,7 +302,9 @@ $(document).on('click','.on',function(){
     var rm=$this.parent('ul').children('.active');
     rm.removeClass('active');
     rm.find('a').css({'color':'blue'});
-    
+    var rm1=$('#chatuser').children('.active');
+    rm1.removeClass('active');
+    rm1.find('a').css({'color':'blue'});
     $('.hidden').attr('id',this.id);
     $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
@@ -287,6 +315,7 @@ $(document).on('click','.on',function(){
 });
 
 socket.on('allmessage',function(data){
+    console.log('hello all message called');
     var frid=$('.hidden').attr('id');
 
     for(i=0;i<data.message.length;i++)
@@ -307,46 +336,76 @@ socket.on('allmessage',function(data){
 socket.on('naya',function(msg){
 
 
-$("#unique").animate({ scrollTop:5000});
-insertChat("you",'SERVER',msg);
+    $("#unique").animate({ scrollTop:5000});
+    insertChat("you",'SERVER',msg);
 
 });
 socket.on('roommessage',function(msg){
 
-var bruser=msg.sender;
-var mssg=msg.textmessage;
-
-$("#unique").animate({ scrollTop:5000});
-insertChat("you",bruser,mssg);
+    var bruser=msg.sender;
+    var mssg=msg.textmessage;
+    var rm= $('#unique').find('.typing');
+    rm.remove();
+    $("#unique").animate({ scrollTop:5000});
+    insertChat("you",bruser,mssg);
 
 });
 
+socket.on('usertyping',function(name){
+    console.log(name);
+    console.log($('input[type="hidden"]').attr('id'));
+    if($('input[type="hidden"]').attr('id')==name.id ||$('input[type="hidden"]').attr('id')==name.room||name.room=='94dbe2575d073999956c38753d8bcbef' ){
+        console.log('same room');
+        var rm= $('#unique').find('#'+name.id);
+        if(rm){
+        rm.remove();
+        }
+        $('#unique').append('<li style="width:60%;float:left;margin-top:10px;padding:1px" class="typing" id="'+name.id+'">' +
+                        '<div style="color:green">' +
+                            '<div >' +
+                                '<p>'+name.name+ ' is typing....</p>' +
+                               
+                            '</div>' +
+                       
+            '</div></li>');
+    }
+    else{
 
+        var ms=$('ul #onlineuser').find('#'+name.id)
+        ms.append('<div id="typing"><center>typing...</center></div>');
+    }
+    $("#unique").animate({ scrollTop:5000});
+});
 
 
 $(document).on("keyup",".mytext", function(e){
 
 
-
-if (e.which == 13){
-  
+    var friendid=$('input[type="hidden"]').attr('id');
+    if (e.which == 13){
     
-    var text = $(this).val();
-    $this=$(this);
-    if (text !== ""){
-
-        $("#unique").animate({ scrollTop:5000});
-        var date = formatAMPM(new Date());
-        var day=  formatedate(new Date());
-        friendid=$('input[type="hidden"]').attr('id');
+        
+        var text = $(this).val();
+        $this=$(this);
+        
         console.log(friendid);
-        insertChat("me",user,text);
-        socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
+        if (text !== ""){
 
-        $this.val('');
+            $("#unique").animate({ scrollTop:5000});
+            var date = formatAMPM(new Date());
+            var day=  formatedate(new Date());
+        
+            console.log(friendid);
+            insertChat("me",user,text);
+            socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
 
+            $this.val('');
+
+        }
     }
-}
+    else{
+        socket.emit('typing',{'sender':userid,'receiver':friendid});
+    }
 
 });
 
