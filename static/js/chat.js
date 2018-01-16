@@ -1,34 +1,9 @@
 
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
-
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js" type="text/javascript"></script>
-   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
-
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
-
-<link rel="stylesheet" href="../css/style.css" type="text/css">
-<script src="/socket.io/socket.io.js"></script>
-
-<script type="text/javascript" src="../js/chatroom.js"></script>
-<script>
-
-    
 var user;
 var userid='<%= id %>';
 var socket=io('/chat');
 
 socket.emit('userconnect',userid);
-
-
 
 socket.on('usernamefetch',function(username){
     user=username;
@@ -59,7 +34,7 @@ $(document).on('click','#chatuser li',function(){
     rm.find('a').css({'color':'blue'});
     rm1.removeClass('active');
     rm1.find('a').css({'color':'blue'});
-    $('.mytext').focus();
+    
     $('.hidden').attr('id',this.id);
     $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
@@ -93,18 +68,15 @@ socket.on('groupcreatedbyfriend',function(grd){
 
 socket.on('grnoti',function(gr){
     console.log('called');
-    if(gr.notification!=1){
+    if(gr.notification<1){
         if(gr.notification==0){
-            console.log('called 0');
             $('#chatuser').find('#'+gr.id).find('.badge-danger').html('');
         }
         else{
-            console.log('called 1');
             $('#chatuser').find('#'+gr.id).find('.badge-danger').html(gr.notification)
         }
     }
     else{
-        console.log('called more');
         $('#chatuser').find('#'+gr.id).find('.badge-danger').html(Number($('#chatuser').find('#'+gr.id).find('.badge-danger').html())+Number(gr.notification));
     }
 });
@@ -196,18 +168,12 @@ socket.on('userlist',function(data){
     }
 });
 
-$(document).on('click','#creategroups',function(){
+$("#creategroups").click(function(){
     var favorite = [];
-    if($('#groupname').val()=='')
-    {
-        alert('Enter Group Name');
-    }
-    else{
-        $.each($("input[type='checkbox']:checked"), function(){            
-            favorite.push($(this).parent('li').attr('id'));
-        });
-        socket.emit('newgroupcreate',{'admin':userid,'name':$('#groupname').val(),'members':favorite,'myid':userid});
-    }
+    $.each($("input[type='checkbox']:checked"), function(){            
+        favorite.push($(this).parent('li').attr('id'));
+    });
+    socket.emit('newgroupcreate',{'admin':userid,'name':$('#groupname').val(),'members':favorite,'myid':userid});
 });
 
 socket.on('alreadyhavegroup',function(){
@@ -230,7 +196,7 @@ $(document).on('click','.on',function(){
     $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
     $('#unique').html('');
-    $('.mytext').focus();
+    
     socket.emit('joinRoom',{'myid':userid,'friendid':this.id});
     socket.emit('massagerequired',{'myid':userid,'friendid':this.id});
 });
@@ -265,7 +231,7 @@ socket.on('roommessage',function(msg){
 
     var bruser=msg.sender;
     var mssg=msg.textmessage;
-    var rm= $('#unique').find('#'+msg.sender);
+    var rm= $('#unique').find('.typing');
     rm.remove();
     $("#unique").animate({ scrollTop:5000});
     insertChat("you",bruser,mssg);
@@ -310,14 +276,14 @@ $(document).on("keyup",".mytext", function(e){
         var text = $(this).val();
         $this=$(this);
         
-        
+        console.log(friendid);
         if (text !== ""){
 
             $("#unique").animate({ scrollTop:5000});
             var date = formatAMPM(new Date());
             var day=  formatedate(new Date());
         
-            
+            console.log(friendid);
             insertChat("me",user,text);
             socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
 
@@ -331,139 +297,3 @@ $(document).on("keyup",".mytext", function(e){
 
 });
 
-    
-</script>
-
-
-<title>ChatApp</title>
-</head>
-<style>
-::-webkit-scrollbar {
-    display: none;
-    }
-
-    </style>
-<header class="nav navbar container" style="padding: 20px">
-   <div >Chatroom</div>
-    <div class="row"  style="float:right;padding: 5px;">
-        
-        <div style="margin:5px ">
-            <img class="img-circle" src="image">
-        </div>
-        <div class="profile" style="margin:5px">
-            <span id="username"></span>
-        </div>
-        <div style="margin:5px">
-            <a class="form-control" href="#" id="logout">Logout</a>
-        </div>
-    </div>
-</header>
-<div class="row col-md-12">
-    <!-- chated users -->
-    <div class="col-md-3" style="background-color: azure">
-       <div style="margin-bottom:10px" class="container">
-            <button type="button" class="btn btn-primary" disabled >
-                My Groups
-            </button>
-            
-            <button type="button" id="creategroup" class="btn" data-toggle="modal" data-target="#exampleModalLong">
-                New Groups 
-            </button>
-        </div>
-  <!-- Modal -->
-<style>
-  .state-icon {
-    left: -5px;
-}
-.list-group-item-primary {
-    color: rgb(255, 255, 255);
-    background-color: rgb(66, 139, 202);
-}
-
-/* DEMO ONLY - REMOVES UNWANTED MARGIN */
-.well .list-group {
-    margin-bottom: 0px;
-}
-
-</style>
-  <div  class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
-    <div  class="modal-dialog" role="document">
-      <div class="modal-content" style="background-color: bisque">
-        <div class="modal-header">
-          <div  id="exampleModalLongTitle" class="container"><input type="text" class="form-control" id="groupname" placeholder="Group Name "></div>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-        <div class="modal-body">
-            <div class="col-md-12">
-                
-                <div class="well" style="max-height: 300px;overflow: auto;">
-                    <ul class="list-group checked-list-box" id="groups" >
-                      
-                      
-                    </ul>
-                </div>
-            </div>
-            
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="creategroups">Create</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="container">
-    <ul class="list-group" id="chatuser" >
-                
-                    
-    </ul>
-  </div>
-</div>
-    <!-- caht window-->
-    <div class="col-md-6 chat_window" style="background-color:aliceblue">
-            
-        <center>
-            
-            <div class="col-md-12" >
-                <div >
-                <center><button class="btn btn-info col-md-12" style="text-transform: capitalize;" id="receivername">Public ChatRoom</button></center>
-                </div>
-
-                <center>
-                    <div class="col-md-12 cframe">
-                        <ul id="unique" >
-                            
-                        </ul>
-                        <div>
-                            <div class="msj-rta macro" style="margin:auto">
-
-                                <div class="ctext text-r row" style="background:whitesmoke !important">
-                                    <input type="text" class="mytext" placeholder="Type a message" autofocus />
-                                    <input type="hidden" class="hidden" id="4fba0847be33303e9014e979b7573822">
-
-                                </div>
-
-                            </div>
-
-                        </div>
-                    </div>
-                
-                </center>
-            </div>
-        </center>
-    </div>
-    <!-- online users -->
-    <div class="col-md-3" style="background-color: azure;">
-        <button type="button" class="form-control btn btn-primary" disabled style="margin-bottom:10px">
-            Online Users
-        </button>
-            <ul class="list-group" id="onlineusers">
-                
-                    
-            </ul>
-        </div>
-</div>
-
-</html>
