@@ -28,7 +28,7 @@ function insertChat2(who,username,text,day,date,time = 0){
 
     if (who == "you"){
 
-        control = '<li style="width:60%;float:left">' +
+        control = '<li style="width:60%;float:left" >' +
                         '<div class="msj macro">' +
 
                             '<div class="ctext ctext-r">' +
@@ -42,7 +42,7 @@ function insertChat2(who,username,text,day,date,time = 0){
     }
 
     else{
-        control = '<li style="width:60%;float:right" class="badge">' +
+        control = '<li style="width:60%;float:right" >' +
                         '<div class="msj-rta macro">' +
                             '<div class="ctext ctext-l" style="padding:5px">' +
                                 '<p>'+text +

@@ -36,7 +36,7 @@
 
 
                         </div>
-                        <div><span>Already Register </span></span><a href="/login">Login</a></div>
+                        <div class="col-md-5" id="lgg"><span>Already Register </span></span><a href="/login">Login</a></div>
                         <div class="col-md-5" style="margin:10px">
                             <input type="email" required class="form-control" id="email" placeholder=" Email ID">
                         </div>
@@ -132,7 +132,7 @@
                 email.val('');
                 pass.val('');
                 confirmpass.val('');
-               $('#error').html('<div class="alert alert-success" role="alert">'+data+'</div>');
+               $('#lgg').html('<div class="alert alert-success" role="alert">'+data+'</div>');
                 
 
                 return false;

@@ -61,12 +61,15 @@ $(document).on('click','#chatuser li',function(){
     rm1.find('a').css({'color':'blue'});
     $('.mytext').focus();
     $('.hidden').attr('id',this.id);
+    $('#receivername').parent('a').attr('id',this.id);
+    
+     
     $this.addClass('active');
     $this.find('a').css({'color':'#FFF'});
     $('#unique').html('');
     
     socket.emit('joingroupRoom',{'group':this.id,'myid':userid});
-    
+   
 });
 socket.on('groupcreated',function(grd){
     $("[data-dismiss=modal]").trigger({ type: "click" });
@@ -86,16 +89,21 @@ socket.on('groupcreatedbyfriend',function(grd){
                     grd.name+
                     '<div style="float:right"><span class="badge badge-danger" ></span></div>'+
             '</a>'+
+            
         '</div>'+
+        
         '</li>');
 
 });
 
 socket.on('grnoti',function(gr){
-    console.log('called');
+    if(gr.id==$('input[type="hidden"]').attr('id')){
+        socket.emit('update',{'user':userid,'frd':gr.id});
+        return false
+    }
     if(gr.notification!=1){
         if(gr.notification==0){
-            console.log('called 0');
+            
             $('#chatuser').find('#'+gr.id).find('.badge-danger').html('');
         }
         else{
@@ -169,17 +177,32 @@ socket.on('yournotification',function(dt){
     
 });
 
+$(document).on('click','.groupinfo',function(){
+    var id=this.id;
+    console.log(id);
+    socket.emit('groupinfo',id);    
+});
+socket.on('groupdata',function(grdata){
+    $('#gpinfoname').html(grdata.name);
+    for(i=0;i<grdata.users.length;i++){
+        socket.emit('username',grdata.users[i]);
+    }
+    
+});
+socket.on('groupusers',function(userinfo){
+    console.log(userinfo);
+    $('#groupMember').append('<li class="list-group-item" id="'+userinfo[0].id+'" style="text-transform:capitalize">'+userinfo[0].username+'</li>');
+
+});
 socket.on('newnoti',function(usrs){
     if(usrs.id==$('input[type="hidden"]').attr('id')){
         socket.emit('update',{'user':userid,'frd':usrs.id});
         return false
     }
-    console.log(usrs.id);
-    console.log($('#onlineusers').html());
-    console.log(usrs.notification+' new notification');
+   
     var usr=$('#onlineusers').children('#'+usrs.id);
     var value=usr.find('.badge-danger').html();
-    console.log(value);
+    
     if(value==''){
         usr.find('.badge-danger').text(usrs.notification);
     }
@@ -215,8 +238,6 @@ socket.on('alreadyhavegroup',function(){
     $('#groupname').val('');
 });
 
-
-
 $(document).on('click','.on',function(){
     $this= $(this);
     $this.find('.badge-danger').html('');
@@ -236,7 +257,7 @@ $(document).on('click','.on',function(){
 });
 
 socket.on('allmessage',function(data){
-    console.log('hello all message called');
+    
     var frid=$('.hidden').attr('id');
 
     for(i=0;i<data.message.length;i++)
@@ -265,7 +286,7 @@ socket.on('roommessage',function(msg){
 
     var bruser=msg.sender;
     var mssg=msg.textmessage;
-    var rm= $('#unique').find('#'+msg.sender);
+    var rm= $('#unique').find('.typing');
     rm.remove();
     $("#unique").animate({ scrollTop:5000});
     insertChat("you",bruser,mssg);
@@ -273,11 +294,11 @@ socket.on('roommessage',function(msg){
 });
 
 socket.on('usertyping',function(name){
-    
-    
+    myVar = setTimeout(function(){    
     if($('input[type="hidden"]').attr('id')==name.id ||$('input[type="hidden"]').attr('id')==name.room||name.room=='94dbe2575d073999956c38753d8bcbef' ){
         
         var rm= $('#unique').find('#'+name.id);
+        
         if(rm){
         rm.remove();
         }
@@ -296,9 +317,19 @@ socket.on('usertyping',function(name){
         ms.append('<div id="typing"><center>typing...</center></div>');
     }
     $("#unique").animate({ scrollTop:5000});
+}, 1);
+setTimeout(function(){
+    var rm= $('#unique').find('#'+name.id);
+        
+        if(rm){
+        rm.remove();
+        }
+},2000);
+
+
+
     
 });
-
 
 $(document).on("keyup",".mytext", function(e){
 
@@ -343,8 +374,9 @@ $(document).on("keyup",".mytext", function(e){
     }
 
     </style>
+<div style="background-color: azure">
 <header class="nav navbar container" style="padding: 20px">
-   <div >Chatroom</div>
+   <div >ChatRoom</div>
     <div class="row"  style="float:right;padding: 5px;">
         
         <div style="margin:5px ">
@@ -358,7 +390,11 @@ $(document).on("keyup",".mytext", function(e){
         </div>
     </div>
 </header>
-<div class="row col-md-12">
+
+
+<!-- Button trigger modal -->
+
+<div class="row col-md-12" >
     <!-- chated users -->
     <div class="col-md-3" style="background-color: azure">
        <div style="margin-bottom:10px" class="container">
@@ -427,10 +463,43 @@ $(document).on("keyup",".mytext", function(e){
         <center>
             
             <div class="col-md-12" >
-                <div >
-                <center><button class="btn btn-info col-md-12" style="text-transform: capitalize;" id="receivername">Public ChatRoom</button></center>
-                </div>
+                
+                
+                <div class="input-group col-md-12">
+                        
+                    
+                    <a class="groupinfo col-md-11" style="float:left" ><div class="btn btn-default" style="text-transform: capitalize;" id="receivername">Public ChatRoom</div></a>
+                        
+                    <div class="groupinfo"  style="float:right">
+                        <span class="input-group-addon" data-toggle="modal" data-target="#exampleModalCenter" style="cursor: pointer">Group Info</span>
+                    </div>
+            </div>
+            
+                
+                      
+                      <!-- Modal -->
+                      <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="exampleModalLongTitle" id="grinfoname"></h5>
+                              <button type="button" class="close" data-dismiss="modal"  aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                              </button>
+                            </div>
+                            <div class="modal-body">
+                                <ul id="groupMember">
 
+                                </ul>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                              <button type="button" class="btn btn-primary">Save changes</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                
                 <center>
                     <div class="col-md-12 cframe">
                         <ul id="unique" >
@@ -465,5 +534,5 @@ $(document).on("keyup",".mytext", function(e){
             </ul>
         </div>
 </div>
-
+</div>
 </html>
