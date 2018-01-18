@@ -13,6 +13,27 @@
 .ctext-l{
     float:left;
 }
+
+.newgroup {
+   position: absolute;
+   top: 10px;
+   right: -100px;
+   bottom: 0px;
+   left: 0px;
+   z-index: 10040;
+   overflow: auto;
+   overflow-y: auto;
+}
+.infobox {
+    position: absolute;
+    top: 10px;
+    right: 0px;
+    bottom: -10px;
+    left: 10px;
+    z-index: 10040;
+    overflow: auto;
+    overflow-y: auto;
+ }
 .ctext-r{
     float:right;
 }
