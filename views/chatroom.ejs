@@ -21,6 +21,23 @@
 <script type="text/javascript" src="../js/chatroom.js"></script>
 <script>
 
+function selectchat($this){
+    
+    $this.find('.badge-danger').html('');
+    var rm=$('ul').children('.active');
+    
+    rm.removeClass('active');
+    rm.find('a').css({'color':'#007bff'});
+    
+    $('.mytext').focus();
+    
+    
+    
+    
+    $this.addClass('active');
+    $this.find('a').css({'color':'#FFF'});
+    $('#unique').html('');
+}
     
 var user;
 var userid='<%= id %>';
@@ -51,54 +68,52 @@ socket.on('usernahihain',function(){
 /* broadcast */
 $(document).on('click','#chatuserpub li',function(){
 
-$this= $(this);
-$('.groupinfo').find('span').show();
-$this.find('.badge-danger').html('');
-var rm=$('ul').children('.active');
-
-rm.removeClass('active');
-rm.find('a').css({'color':'#007bff'});
-
-
-$('.mytext').focus();
-$('.hidden').attr('id',this.id);
-$('.groupinfo').children('span').attr('id',this.id);
-
-
-$this.addClass('active');
-$this.find('a').css({'color':'#FFF'});
-$('#unique').html('');
-
-socket.emit('joingroupRoom',{'group':this.id,'myid':userid});
+    $('.groupinfo').find('span').show();
+    $('.hidden').attr('id',this.id);
+    $('.groupinfo').children('span').attr('id',this.id);
+    selectchat($(this));
+    socket.emit('joingroupRoom',{'group':this.id,'myid':userid});
 
 });
 $(document).on('click','#chatuser li',function(){
 
-    $this= $(this);
-    $('.groupinfo').find('span').show();
-    $this.find('.badge-danger').html('');
-    var rm=$('ul').children('.active');
-    
-    rm.removeClass('active');
-    rm.find('a').css({'color':'#007bff'});
-    
-    $('.mytext').focus();
     $('.hidden').attr('id',this.id);
     $('.groupinfo').children('span').attr('id',this.id);
+    $('.groupinfo').find('span').show();
     
-    
-    $this.addClass('active');
-    $this.find('a').css({'color':'#FFF'});
-    $('#unique').html('');
+    selectchat($(this));
     
     socket.emit('joingroupRoom',{'group':this.id,'myid':userid});
    
 });
+
+$(document).on('click','#pubs li div a button',function(){
+
+    var conf=confirm('Please Confirm Before join?');
+    $('.groupinfo').find('span').show();
+    $('.groupinfo').children('span').attr('id',$(this).parent('a').parent('div').parent('li').attr('id'));
+    selectchat($(this));
+    $('.hidden').attr('id',$(this).parent('a').parent('div').parent('li').attr('id'));
+    $('#pubs').children('#'+$(this).parent('a').parent('div').parent('li').attr('id')).remove();
+    console.log('id:'+$(this).parent('a').parent('div').parent('li').attr('id'));
+    socket.emit('joinpubs',{'group':$(this).parent('a').parent('div').parent('li').attr('id'),'myid':userid,'name':$(this).parent('a').children('span').text()});
+    socket.emit('joingroupRoom',{'group':$(this).parent('a').parent('div').parent('li').attr('id'),'myid':userid});
+
+});
+
+$(document).on('click','.on',function(){
+  
+  $('.groupinfo').find('span').hide();
+  selectchat($(this));
+  $('.hidden').attr('id',this.id);
+  socket.emit('joinRoom',{'myid':userid,'friendid':this.id});
+  socket.emit('massagerequired',{'myid':userid,'friendid':this.id});
+});
 socket.on('groupspub',function(groupdata){
     $('#pubs').append('<li class="list-group-item " id="'+groupdata.id+'"><div >'+
             '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
-                    groupdata.name+
-                    '<div style="float:right"><span class="badge badge-danger" ></span></div>'+
+                    '<span>'+groupdata.name+'</span>'+
+                    '<button class="btn btn-primary" style="float:right">Join</button>'+
             '</a>'+
         '</div>'+
         '</li>');
@@ -157,19 +172,40 @@ socket.on('grnoti',function(gr){
         socket.emit('update',{'user':userid,'frd':gr.id});
         return false
     }
+    console.log(gr);
     if(gr.notification!=1){
+        
         if(gr.notification==0){
-            
-            $('#chatuser').find('#'+gr.id).find('.badge-danger').html('');
+            if( $('#chatuser').children('#'+gr.id).attr('id')==gr.id){
+                
+                $('#chatuser').children('#'+gr.id).find('.badge-danger').html('');
+            }
+            else{
+                
+                $('#chatuserpub').children('#'+gr.id).find('.badge-danger').html('');
+            }
         }
         else{
-            console.log('called 1');
-            $('#chatuser').find('#'+gr.id).find('.badge-danger').html(gr.notification)
+            if( $('#chatuser').children('#'+gr.id).attr('id')==gr.id){
+                
+                $('#chatuser').children('#'+gr.id).find('.badge-danger').html(gr.notification);
+            }
+            else{
+                
+                $('#chatuserpub').children('#'+gr.id).find('.badge-danger').html(gr.notification);
+                           }
         }
     }
     else{
-        console.log('called more');
-        $('#chatuser').find('#'+gr.id).find('.badge-danger').html(Number($('#chatuser').find('#'+gr.id).find('.badge-danger').html())+Number(gr.notification));
+        console.log('more noti');
+        if( $('#chatuser').find('#'+gr.id).attr('id')==gr.id){
+            
+            $('#chatuser').find('#'+gr.id).find('.badge-danger').html(Number($('#chatuser').find('#'+gr.id).find('.badge-danger').html())+Number(gr.notification));
+        }
+        else{
+            
+            $('#chatuserpub').find('#'+gr.id).find('.badge-danger').html(Number($('#chatuserpub').find('#'+gr.id).find('.badge-danger').html())+Number(gr.notification));
+        }
     }
 });
 socket.on('newuserremovesuccess',function(id){
@@ -177,7 +213,7 @@ socket.on('newuserremovesuccess',function(id){
     $('#onlineusers').find('#'+id).remove();
 });
 socket.on('newuseraddsuccess',function(user){
-    console.log('newuser');
+    
     socket.emit('mynotification',{'me':userid,'friend':user[0].id});
     if(user[0].id==userid){
         alert('someone login to your account from another device');
@@ -267,7 +303,10 @@ $(document).on('click','.removemember',function(){
     socket.emit('removemembers',{'me':userid,'userrem':removeid,'group':gro});
     alert('done');
 });
-
+socket.on('youareout',function(iii){
+    $('#chatuser').find('#'+iii).remove();
+    $('#chatuserpub').find('#'+iii).remove();
+});
 socket.on('memberremoved',function(usrrem){
     $('#groupMember').find('#'+usrrem).remove();
 });
@@ -339,22 +378,7 @@ socket.on('alreadyhavegroup',function(){
     $('#groupname').val('');
 });
 
-$(document).on('click','.on',function(){
-    $this= $(this);
-    $this.find('.badge-danger').html('');
-    var rm=$('ul').children('.active');
-    rm.removeClass('active');
-    rm.find('a').css({'color':'#007bff'});
-    
-    $('.groupinfo').find('span').hide();
-    $('.hidden').attr('id',this.id);
-    $this.addClass('active');
-    $this.find('a').css({'color':'#FFF'});
-    $('#unique').html('');
-    $('.mytext').focus();
-    socket.emit('joinRoom',{'myid':userid,'friendid':this.id});
-    socket.emit('massagerequired',{'myid':userid,'friendid':this.id});
-});
+
 
 socket.on('allmessage',function(data){
     
@@ -384,13 +408,17 @@ socket.on('naya',function(msg){
 
 });
 socket.on('roommessage',function(msg){
-
+    console.log('msg id : '+msg.id);
+    console.log('userid :'+$('input[type="hidden"]').attr('id'));
+    if(msg.id==$('input[type="hidden"]').attr('id')){
     var bruser=msg.sender;
     var mssg=msg.textmessage;
     var rm= $('#unique').find('.typing');
     rm.remove();
     $("#unique").animate({ scrollTop:5000});
+
     insertChat("you",bruser,mssg);
+    }
 
 });
 
@@ -398,12 +426,14 @@ $(document).on('click','#leftgroup',function(){
     
     var gid=$('.groupinfo span').attr('id');
     socket.emit('groupleft',{'myid':userid,'groupid':gid});
+    
 });
 socket.on('groupleftconfirm',function(group){
     
     $("[data-dismiss=modal]").trigger({ type: "click" });
     
     $('#chatuser').find('#'+group).remove();
+    $('#chatuserpub').find('#'+group).remove()
     $('.hidden').attr('id','4fba0847be33303e9014e979b7573822');
     socket.emit('default');
     socket.emit('joingroupRoom',{'group':'94dbe2575d073999956c38753d8bcbef','myid':userid});
