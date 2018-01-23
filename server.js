@@ -14,6 +14,7 @@ var bodyParser = require('body-parser');
 
 var io=require('socket.io')(http);
 
+var Promise=require('promise');
 app.use(bodyParser.json()); 
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -196,6 +197,34 @@ chat.on('connection',function(socket){
                 });
         });
     });
+    var getroom=function (myid,friendid,callback){
+        
+        if(friendid=='4fba0847be33303e9014e979b7573822'){return callback('94dbe2575d073999956c38753d8bcbef');}
+        
+        var roomid=myid+friendid;
+        var roomid2=friendid+myid;
+        var room3=friendid;
+        roomid=crypto.createHash('md5').update(roomid).digest('hex');
+        roomid2=crypto.createHash('md5').update(roomid2).digest('hex');
+        
+        var sql='select * from room where id="'+roomid+'" OR id="'+roomid2+'" OR id="'+room3+'"';
+        
+        
+        return con.query(sql,function(err,result){
+            if(err){console.log('sql error:'+err);}
+            else{
+            if(result.length!=0){
+                
+                callback(result[0].id);
+            }
+            else{
+                
+                callback(roomid);
+            }
+        }
+        });
+    
+    }
     socket.on('userconnect',function(user){
         idofuser=user;
         
@@ -252,44 +281,39 @@ chat.on('connection',function(socket){
                 }
             });
             
-            var sql='select id,username from users where active=1 AND id!="'+user+'"';
-            con.query(sql,function(err,result){
+            console.log('Online Users: '+users);
+            users.forEach(function(data){
+                console.log('users :'+data);
+                if(data!=idofuser){
+                
+                console.log('user for online excluding me');
+                var sql='select id,username from users where  id="'+data+'"';
+                var online=new Promise(function(resolve,reject){
+                    con.query(sql,function(err,result){
+                        socket.emit('fetchonlineusers',result[0]);
+                        resolve();
+                        
+                        
+                        
+                    
+                    });
+                });
+                online.then(function(){
+                    
+                    console.log('after resolve items'+items);
+                });
             
-            socket.emit('fetchonlineusers',result);
+                
+                    
+                }
+                
             });
             
         }
        
 
     });
-    var getroom=function (myid,friendid,callback){
-        
-        if(friendid=='4fba0847be33303e9014e979b7573822'){return callback('94dbe2575d073999956c38753d8bcbef');}
-        
-        var roomid=myid+friendid;
-        var roomid2=friendid+myid;
-        var room3=friendid;
-        roomid=crypto.createHash('md5').update(roomid).digest('hex');
-        roomid2=crypto.createHash('md5').update(roomid2).digest('hex');
-        
-        var sql='select * from room where id="'+roomid+'" OR id="'+roomid2+'" OR id="'+room3+'"';
-        
-        
-        return con.query(sql,function(err,result){
-            if(err){console.log('sql error:'+err);}
-            else{
-            if(result.length!=0){
-                
-                callback(result[0].id);
-            }
-            else{
-                
-                callback(roomid);
-            }
-        }
-        });
     
-    }
     
    
     socket.on('nonuserdata',function(id){
@@ -333,6 +357,50 @@ chat.on('connection',function(socket){
             socket.emit('groupusers',{'iamadmin':iamadmin,'admin':admin,'member':rs,'join':true});
         });
     });
+    socket.on('addmember',function(info){
+        console.log('new member');
+        console.log(info);
+        quer='select * from groups where id="'+info.groupid+'"';
+        con.query(quer,function(errr,result){
+            if(errr){console.log('query error :'+errr);}
+            if(result.length==1)
+            {
+                console.log('inside query');
+                var users;
+                
+                if(info.admin=result[0].admin){
+                    var members=new Promise(function(resolve,reject){
+                        con.query('select userid from participents where groupid="'+info.groupid+'"',function(er,resul){
+                            user=resul;
+                            console.log('group members:'+user);
+                            resolve();
+                        });
+                    });
+                    members.then(function(resolve,reject){
+                        console.log('after resolve');
+                        for(i=0;i<info.member.length;i++){
+                            new Promise(function(resolve,reject){
+                                con.query('insert into participents values("'+info.groupid+'","'+info.member[i]+'") ',function(err,res){
+                                    if(!err)
+                                    {
+                                        
+                                            for(j=0;j<user.length;j++){
+                                                if(user[j] in usersocket){
+                                                    
+                                                    socket.to(usersocket[user[j]]).emit('newmemberadd',{'name':usernames[user[j]],'groupid':info.groupid});
+                                                }
+                                            }
+                                            
+                                        resolve();
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    });
     socket.on('removemembers',function(detail){
         
         con.query('select admin from groups where id="'+detail.group+'"',function(err,re){
@@ -357,7 +425,24 @@ chat.on('connection',function(socket){
         });
     });
     socket.on('groupleft',function(info){
-        
+        sql='select admin from groups where id="'+info.groupid+'"';
+        new Promise(function(resolve,reject){
+            con.query(sql,function(er,resl){
+                if(er){console.log(er);}else{
+                    if(resl.length==1){
+                        if(resl[0].admin==info.myid){
+                            con.query('select userid from participents where groupid="'+info.groupid+'" LIMIT 1',function(ee,rr){
+                                if(ee){console.log(ee);}
+                                else{
+
+                                    con.query('update groups set admin="'+rr[0].userid+'" where id="'+info.groupid+'" ');
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+        });
         sql='delete from participents where userid="'+info.myid+'" AND groupid="'+info.groupid+'"';
         con.query(sql,function(err,conf){
             if(err){console.log(err);}
@@ -508,15 +593,40 @@ chat.on('connection',function(socket){
             });
     });
     socket.on('typing',function(ur){
-        ;
-        getroom(ur.sender,ur.receiver,function(room){
-            
-            con.query('select username from users where id="'+ur.sender+'"',function(err,result){
-                
-                socket.to(room).emit('usertyping',{'room':room,'id':ur.sender,'name':result[0].username});
+        
+        if(ur.receiver=='4fba0847be33303e9014e979b7573822'){
+              
+            users.forEach(function(sk){
+            socket.to(usersocket[sk]).emit('usertyping',{'room':ur.receiver,'id':ur.receiver,'name':usernames[ur.sender]})
             });
+
+        }
+        else{
+        con.query('select userid from participents where groupid="'+ur.receiver+'"',function(err,result){
+            //console.log('ty:'+result);
+            if(result.length>0){
+                
+                var send=[];
+                result.forEach(function(sk) {
+                    send.push(sk.userid);
+                });
+               // console.log('snd:'+send);
+                send.forEach(function(skt){
+                    socket.to(usersocket[skt]).emit('usertyping',{'room':ur.receiver,'id':ur.receiver,'name':usernames[ur.sender]});
+                });
+
+            }
+            else{
+            //console.log('else');
+                socket.to(usersocket[ur.receiver]).emit('usertyping',{'room':ur.receiver,'id':ur.sender,'name':usernames[ur.sender]});
             
+        }
         });
+    }   
+            
+           
+            
+        
     });
     socket.on('update',function(id){
         getroom(id.user,id.frd,function(rrm){
@@ -538,6 +648,7 @@ chat.on('connection',function(socket){
         if(msg.receiver=='4fba0847be33303e9014e979b7573822'){
             console.log('pub mssge');
             for(i=0;i<users.length;i++){
+                
                 con.query('insert into chat(id,sender,receiver,massge,time,date) values("94dbe2575d073999956c38753d8bcbef","'+msg.sender+'","4fba0847be33303e9014e979b7573822","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(eeer,dtt){
                     if(eeer){
                         console.log(eeer);
@@ -545,8 +656,8 @@ chat.on('connection',function(socket){
                 });
                 if(users[i]!=idofuser){
                     
-                        
-                    socket.to(usersocket[users[i]]).emit('roommessage',{'id':msg.receiver,'sender':'rohit','textmessage':msg.textmessage});
+                    
+                    socket.to(usersocket[users[i]]).emit('roommessage',{'id':msg.receiver,'sender':usernames[msg.sender],'textmessage':msg.textmessage});
                 }
             }
         }

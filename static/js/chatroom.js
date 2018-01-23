@@ -32,8 +32,9 @@ function insertChat2(who,username,text,day,date,time = 0){
                         '<div class="msj macro">' +
 
                             '<div class="ctext ctext-r">' +
-                                '<p>'+ text +'</p>' +
-                                '<p><small>'+date+'  '+day+'</small></p>'+
+                                '<p style="margin-right:3px">'+username+'</p>'+
+                                '<p>'+ text +
+                                '</p><p><small style="margin-left:10px">'+date+'  '+day+'</small></p>'+
 
 
                             '</div>' +
@@ -45,8 +46,9 @@ function insertChat2(who,username,text,day,date,time = 0){
         control = '<li style="width:60%;float:right" >' +
                         '<div class="msj-rta macro">' +
                             '<div class="ctext ctext-l" style="padding:5px">' +
+                                '<p style="margin-right:3px">'+username+'</p>'+
                                 '<p>'+text +
-                                '<small>'+date+'  '+day+'</small></p>' +
+                                '</p><p><small style="margin-left:10px">'+date+'  '+day+'</small></p>' +
                             '</div>' +
                         
             '</div></li>';
@@ -68,12 +70,13 @@ function insertChat(who,username,text, time = 0){
 
     if (who == "you"){
 
-        control = '<li style="width:60%;float:left">' +
+        control = '<li style="width:60%;float:left" >' +
                         '<div class="msj macro">' +
 
                             '<div class="ctext ctext-r">' +
-                                '<p>'+ text +'</p>' +
-                                '<p><small>'+date+'  '+day+'</small></p>'+
+                                '<p style="margin-right:3px">'+username+'</p>'+
+                                '<p>'+ text +
+                                '</p><p><small style="margin-left:100px">'+date+'  '+day+'</small></p>'+
 
 
                             '</div>' +
@@ -82,13 +85,14 @@ function insertChat(who,username,text, time = 0){
     }
 
     else{
-        control = '<li style="width:60%;float:right">' +
+        control = '<li style="width:60%;float:right" >' +
                         '<div class="msj-rta macro">' +
-                            '<div class="ctext ctext-l">' +
-                                '<p>'+text+'</p>' +
-                                '<p><small>'+date+'  '+day+'</small></p>' +
+                            '<div class="ctext ctext-l" style="padding:5px">' +
+                                '<p style="margin-right:3px">'+username+'</p>'+
+                                '<p>'+text +
+                                '</p><p><small style="margin-left:100px">'+date+'  '+day+'</small></p>' +
                             '</div>' +
-                       
+                        
             '</div></li>';
     }
     setTimeout(
@@ -106,6 +110,9 @@ function resetChat(){
 
 
 }
+
+
+$(function(){
 setTimeout(function(){
     $('.list-group.checked-list-box .list-group-item').each(function () {
         
@@ -184,7 +191,7 @@ setTimeout(function(){
         $('#display-json').html(JSON.stringify(checkedItems, null, '\t'));
     });
 }, 2000);
-
+});
 
 
 

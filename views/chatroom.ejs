@@ -39,12 +39,83 @@ function selectchat($this){
     $('#unique').html('');
 }
     
-var user;
+var user='<%= username %>';
 var userid='<%= id %>';
 var socket=io('/chat');
 
 socket.emit('userconnect',userid);
 
+function a1(){
+
+$('#nongroupMember.list-group.checked-list-box .list-group-item').each(function () {
+    
+    // Settings
+    var $widget = $(this),
+        $checkbox = $('<input type="checkbox" class="hidden" style="display:none" />'),
+        color = ($widget.data('color') ? $widget.data('color') : "primary"),
+        style = ($widget.data('style') == "button" ? "btn-" : "list-group-item-"),
+        settings = {
+            on: {
+                icon: 'glyphicon glyphicon-check'
+            },
+            off: {
+                icon: 'glyphicon glyphicon-unchecked'
+            }
+        };
+        
+    $widget.css('cursor', 'pointer')
+    $widget.append($checkbox);
+
+    // Event Handlers
+    $widget.on('click', function () {
+        $checkbox.prop('checked', !$checkbox.is(':checked'));
+        $checkbox.triggerHandler('change');
+        updateDisplay();
+    });
+    $checkbox.on('change', function () {
+        updateDisplay();
+    });
+      
+
+    // Actions
+    function updateDisplay() {
+        var isChecked = $checkbox.is(':checked');
+
+        // Set the button's state
+        $widget.data('state', (isChecked) ? "on" : "off");
+
+        // Set the button's icon
+        $widget.find('.state-icon')
+            .removeClass()
+            .addClass('state-icon ' + settings[$widget.data('state')].icon);
+
+        // Update the button's color
+        if (isChecked) {
+            $widget.addClass(style + color + ' active');
+        } else {
+            $widget.removeClass(style + color + ' active');
+        }
+    }
+
+    // Initialization
+    function init() {
+        
+        if ($widget.data('checked') == true) {
+            $checkbox.prop('checked', !$checkbox.is(':checked'));
+        }
+        
+        updateDisplay();
+
+        // Inject the icon if applicable
+        if ($widget.find('.state-icon').length == 0) {
+            $widget.prepend('<span class="state-icon ' + settings[$widget.data('state')].icon + '"></span>');
+        }
+    }
+    init();
+});
+
+
+}
 
 
 socket.on('usernamefetch',function(username){
@@ -240,17 +311,17 @@ socket.on('newuseraddsuccess',function(user){
 socket.on('fetchonlineusers',function(data){
     
     
-    for(i=0;i<data.length;i++){
-        socket.emit('mynotification',{'me':userid,'friend':data[i].id});
-        $('#onlineusers').append('<li class="list-group-item on " id="'+data[i].id+'">'+
+    
+        socket.emit('mynotification',{'me':userid,'friend':data.id});
+        $('#onlineusers').append('<li class="list-group-item on " id="'+data.id+'">'+
                     '<div >'+
                         '<a href="#" style="text-decoration: none;text-transform: uppercase">'+
-                            data[i].username+
+                            data.username+
                             '<div style="float:right"><span class="badge badge-danger" ></span></div>'+
                         '</a>'+
                     '</div>'+
                     '</li>');
-                        }
+                     
                     
     
 });
@@ -282,7 +353,8 @@ $(document).on('click','.groupinfo',function(){
     console.log(id);
     $('#groupMember').html('');
     $('#nongroupMember').html('');
-    socket.emit('groupinfo',id);    
+    socket.emit('groupinfo',id); 
+    setTimeout(function(){a1();},1000);   
 });
 socket.on('groupdata',function(grdata){
     console.log(grdata.name);
@@ -357,7 +429,31 @@ socket.on('userlist',function(data){
         }
     }
 });
+$(document).on('click','#addm',function(){
+    $("[data-dismiss=modal]").trigger({ type: "click" });  
+    $('#non').hide();
+    $('#notnon').show();
+    $('#addm').addClass('btn-danger');
+    $('#addm').html('Left Group');
+    $('#addm').removeClass('btn-info');
+    $('#addm').attr('id','leftgroup');
 
+    var favorite1 = [];
+    var groupid=$('.groupinfo').children('span').attr('id');
+    console.log(groupid);
+    $.each($('#nongroupMember').find("input[type='checkbox']:checked"), function(){            
+        favorite1.push($(this).parent('li').attr('id'));
+
+    });
+    
+    socket.emit('addmember',{'admin':userid,'member':favorite1,'groupid':groupid});
+    
+
+});
+
+socket.on('newmemberadd',function(dd){
+    console.log(dd);
+});
 $(document).on('click','#creategroups',function(){
     var favorite = [];
     var status=$('#status').val();
@@ -366,7 +462,7 @@ $(document).on('click','#creategroups',function(){
         alert('Enter Group Name');
     }
     else{
-        $.each($("input[type='checkbox']:checked"), function(){            
+        $.each($('#groups').find("input[type='checkbox']:checked"), function(){            
             favorite.push($(this).parent('li').attr('id'));
         });
         socket.emit('newgroupcreate',{'admin':userid,'name':$('#groupname').val(),'status':status,'members':favorite,'myid':userid});
@@ -381,6 +477,9 @@ socket.on('alreadyhavegroup',function(){
 
 
 socket.on('allmessage',function(data){
+    $("#receivername").html(data.receiver);
+    var myname=user;
+    
     
     var frid=$('.hidden').attr('id');
 
@@ -389,14 +488,15 @@ socket.on('allmessage',function(data){
         if(data.message[i].sender==userid)
         {
             
-            insertChat2('me',user,data.message[i].massge,data.message[i].time,data.message[i].date);
+            insertChat2('me',myname,data.message[i].massge,data.message[i].time,data.message[i].date);
         }
         else
         {
+
             insertChat2('you',data.receiver,data.message[i].massge,data.message[i].time,data.message[i].date);
         }
     }
-    $("#receivername").html(data.receiver);
+    
     $('#exampleModalCenterTitle').text(data.receiver);
     $("#unique").animate({ scrollTop:5000});
 });
@@ -408,8 +508,7 @@ socket.on('naya',function(msg){
 
 });
 socket.on('roommessage',function(msg){
-    console.log('msg id : '+msg.id);
-    console.log('userid :'+$('input[type="hidden"]').attr('id'));
+    
     if(msg.id==$('input[type="hidden"]').attr('id')){
     var bruser=msg.sender;
     var mssg=msg.textmessage;
@@ -440,7 +539,7 @@ socket.on('groupleftconfirm',function(group){
     });
 socket.on('usertyping',function(name){
     myVar = setTimeout(function(){    
-        if($('input[type="hidden"]').attr('id')==name.id ||$('input[type="hidden"]').attr('id')==name.room||name.room=='94dbe2575d073999956c38753d8bcbef' ){
+        if($('input[type="hidden"]').attr('id')==name.id ){
         
             var rm= $('#unique').find('#'+name.id);
             
@@ -488,7 +587,7 @@ $(document).on("keyup",".mytext", function(e){
             $("#unique").animate({ scrollTop:5000});
             var date = formatAMPM(new Date());
             var day=  formatedate(new Date());
-        
+            
             
             insertChat("me",user,text);
             socket.emit('newmessage',{'sender':userid,'receiver':friendid,'textmessage':text,'time':date,'date':day});
@@ -673,7 +772,7 @@ $(document).on("keyup",".mytext", function(e){
                             <div class="modal-body">
                                 <div id='non'>
                                     <button id="btt" class="btn btn-primary">Back</button>
-                                    <ul id="nongroupMember" class="list-group" style="text-align: left">
+                                    <ul id="nongroupMember" class="list-group checked-list-box"  style="text-align: left">
 
                                     </ul>
                                 </div>
