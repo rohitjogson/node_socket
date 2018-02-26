@@ -647,17 +647,13 @@ chat.on('connection',function(socket){
         
         if(msg.receiver=='4fba0847be33303e9014e979b7573822'){
             console.log('pub mssge');
-            con.query('select username from users where id="'+msg.sender+'"',function(e,r){
-                con.query('insert into chat(id,sender,sendername,receiver,massge,time,date) values("94dbe2575d073999956c38753d8bcbef","'+msg.sender+'","'+r[0].username+'","4fba0847be33303e9014e979b7573822","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(eeer,dtt){
+            for(i=0;i<users.length;i++){
+                
+                con.query('insert into chat(id,sender,receiver,massge,time,date) values("94dbe2575d073999956c38753d8bcbef","'+msg.sender+'","4fba0847be33303e9014e979b7573822","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(eeer,dtt){
                     if(eeer){
                         console.log(eeer);
                     }
                 });
-            });
-           
-            for(i=0;i<users.length;i++){
-                
-                
                 if(users[i]!=idofuser){
                     
                     
@@ -671,12 +667,15 @@ chat.on('connection',function(socket){
                 con.query('update userclick set time=CURRENT_TIMESTAMP where roomid="'+result+'" AND userid="'+msg.sender+'"');
                 if(result==msg.receiver){
                     console.log('group massage');
-                    con.query('select username from users where id="'+msg.sender+'"',function(e,r){
-                        con.query('insert into chat(id,sender,sendername,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+r[0].username+'","4fba0847be33303e9014e979b7573822","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(eeer,dtt){
-                            if(eeer){
-                                console.log(eeer);
-                            }
-                        });
+                    con.query('insert into chat(id,sender,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+msg.sender+'","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(err,res){
+                        if(err)
+                        {
+                            console.log(err);
+                        }
+                        else
+                        {
+                            console.log('message inserted');
+                        }
                     });
                     console.log('sending to users....'); 
                     qur='select userid from participents where groupid="'+result+'" AND userid!="'+msg.sender+'"';
@@ -689,7 +688,7 @@ chat.on('connection',function(socket){
                                 var us=results[i].userid;
                                 if(usersocket[us]!=undefined){
                                     socket.to(usersocket[us]).emit('grnoti',{'id':msg.receiver,'notification':1});
-                                    socket.to(usersocket[us]).emit('roommessage',{'id':msg.receiver,'sender':usernames[msg.sender],'textmessage':msg.textmessage});
+                                    socket.to(usersocket[us]).emit('roommessage',{'id':msg.receiver,'sender':usernames[us],'textmessage':msg.textmessage});
                                 }
                                 else{
                                     console.log('user'+us+ 'is not on socket');
@@ -707,12 +706,12 @@ chat.on('connection',function(socket){
                         socket.to(usersocket[msg.receiver]).emit('newnoti',{'id':msg.sender,'notification':1});
                         socket.to(usersocket[msg.receiver]).emit('roommessage',{'id':msg.sender,'sender':res1[0].username,'textmessage':msg.textmessage});
                         console.log('user massage sent');
-                        con.query('select username from users where id="'+msg.sender+'"',function(e,r){
-                            con.query('insert into chat(id,sender,sendername,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+r[0].username+'","4fba0847be33303e9014e979b7573822","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(eeer,dtt){
-                                if(eeer){
-                                    console.log(eeer);
-                                }
-                            });
+                        con.query('insert into chat(id,sender,receiver,massge,time,date) values("'+result+'","'+msg.sender+'","'+msg.receiver+'","'+msg.textmessage+'","'+msg.time+'","'+msg.date+'")',function(err,res){
+                            if(err){console.log(err);}
+                            else{
+                                console.log('insert')
+                            }
+                   // console.log('inserted at  :'+result);
                         });
                     });
                 }

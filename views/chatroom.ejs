@@ -493,7 +493,7 @@ socket.on('allmessage',function(data){
         else
         {
 
-            insertChat2('you',data.message[i].sendername,data.message[i].massge,data.message[i].time,data.message[i].date);
+            insertChat2('you',data.receiver,data.message[i].massge,data.message[i].time,data.message[i].date);
         }
     }
     
